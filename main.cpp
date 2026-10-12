@@ -32,7 +32,7 @@ int layoutHeight(int width, bool expanded) {
 struct Options {
     bool live = false, paused = false, topmost = false, borderless = true, hidden = false;
     bool expanded = true, setup = false;
-    int season = 2026, port = 20777, frames = 0, width = 1120, height = 400;
+    int season = 2026, port = 20777, frames = 0, width = 560, height = 200;
     float opacity = 0.82f, graphSeconds = 8;
     double demoStart = 38.25;
     std::string screenshot;

@@ -112,7 +112,7 @@ apex_hud --setup
 apex_hud --help
 ```
 
-The default layout is **1120 × 400**: the **1120 × 280** (4:1) reference strip plus **120 pixels** of matching readouts underneath. `--compact` starts with only the reference strip; `--expanded` explicitly includes the lower readouts. `--width` automatically chooses a matching height unless `--height` is also provided; for example, `--width 840` opens at **840 × 300**. The minimum window is **560 × 140**. Setup offers 560, 840 and 1120 pixel width presets, applied when it closes. The settings dialog temporarily enlarges the same window and restores the overlay's dimensions afterward. Arbitrary aspect ratios are letterboxed; native framebuffer scaling preserves sharp text on high-DPI displays. Transparency requires OS compositor support.
+The default window is **560 × 200**, with the reference strip above **60 pixels** of matching readouts. `--compact` opens at **560 × 140** with only the reference strip; `--expanded` explicitly includes the lower readouts. The layout scales from a 1120 × 400 design, so the graph, wheel and text keep their proportions. `--width` automatically chooses a matching height unless `--height` is also provided; for example, `--width 840` opens at **840 × 300**, and `--width 1120` opens at **1120 × 400**. Setup offers 560, 840 and 1120 pixel width presets, applied when it closes. The settings dialog temporarily enlarges the same window and restores the overlay's dimensions afterward. Arbitrary aspect ratios are letterboxed; native framebuffer scaling preserves sharp text on high-DPI displays. Transparency requires OS compositor support.
 
 ## Reading the dashboard
 
