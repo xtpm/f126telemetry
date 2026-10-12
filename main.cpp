@@ -30,7 +30,7 @@ int layoutHeight(int width, bool expanded) {
 }
 
 struct Options {
-    bool live = false, paused = false, topmost = false, borderless = true, hidden = false;
+    bool live = false, paused = false, topmost = true, borderless = true, hidden = false;
     bool expanded = true, setup = false;
     int season = 2026, port = 20777, frames = 0, width = 560, height = 200;
     float opacity = 0.82f, graphSeconds = 8;
@@ -417,13 +417,15 @@ Options arguments(int argc, char** argv) {
         else if (a=="--compact") o.expanded = false;
         else if (a=="--setup") o.setup = true;
         else if (a=="--topmost") o.topmost = true;
+        else if (a=="--no-topmost") o.topmost = false;
         else if (a=="--decorated") o.borderless = false;
         else if (a=="--help") {
             std::cout << "APEX telemetry HUD\n"
                 "  --demo | --live    Demo (default) or F1 25 / 2026 UDP\n"
                 "  --season 2025|2026 Demo car regulations (default 2026)\n"
                 "  --port 20777       UDP listening port\n"
-                "  --topmost          Keep above other windows\n"
+                "  --topmost          Keep above other windows (default)\n"
+                "  --no-topmost       Start as a normal window\n"
                 "  --decorated        Show OS title bar and resize borders\n"
                 "  --width N --height N --paused\n"
                 "  --expanded        Show the slim F1 info strip (default)\n"

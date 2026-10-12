@@ -76,7 +76,7 @@ For a console or another PC, enter the **HUD PC's LAN IPv4 address** in the game
 
 If SimHub or another application already occupies `20777`, use a different port in both the game and **Overlay setup** (`...` or F1), or forward telemetry from that application to APEX's port. Click **Connect / restart UDP** after changing the port. Only one game's stream should target the receiver at a time.
 
-Use **windowed or borderless mode in the game**, then enable APEX's **Always on top** option. Exclusive fullscreen can prevent ordinary desktop overlays from appearing. This is a separate native window, with interactive controls; it is not a click-through or injected overlay.
+The HUD starts with **Always on top enabled**. Use **windowed or borderless mode in the game** so the HUD can stay visible while the game has focus. Exclusive fullscreen can prevent ordinary desktop overlays from appearing. Press **F8** or use the setup checkbox to toggle this setting; `--no-topmost` starts it as a normal window. This is a separate native window, with interactive controls; it is not a click-through or injected overlay.
 
 ### 2025 versus 2026
 
@@ -97,7 +97,7 @@ Protocol reference: [EA's official F1 25 and 2026 Season Pack telemetry specific
 | Space | Freeze/resume the demo, including its graph and wheel |
 | + / −, F2 | Show/hide the slim F1 info strip (shown by default) |
 | ..., F1 | Connection, demo name, opacity, history length, window size |
-| F8 | Toggle always on top |
+| F8 | Toggle always on top (enabled by default) |
 | F9 | Toggle OS window frame; framed windows can be resized normally |
 | Drag the header | Move the window |
 | Escape | Close setup, or quit the dashboard |
