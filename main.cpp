@@ -260,76 +260,106 @@ std::string ersMode(const Telemetry& t) {
         t.ersMode==3 ? (t.regs2026 ? "BOOST" : "OVERTAKE") : "MEDIUM";
 }
 
-void details(Canvas& c, const Telemetry& t) {
-    // One shallow continuation of the reference strip. Keep the same typeface,
-    // flat background and small separators, with no duplicate driver header.
-    c.rect(0,280,1120,120,IM_COL32(15,15,17,static_cast<int>(c.opacity*255)));
-    c.line(10,286,1110,286,edge);
-    for (float x : {372.0f,596.0f,832.0f}) c.line(x,298,x,390,alpha(edge,160));
+void details(Canvas c, const Telemetry& t) {
+    // The main graph uses a 1120-wide design; the footer is laid out at its
+    // actual 560-pixel minimum width. This keeps text at 11-14 px rather than
+    // shrinking the old labels to 5-6 px in the small overlay.
+    c.oy=c.p(0,280).y;
+    c.scale*=2;
+    constexpr ImU32 label=IM_COL32(193,201,207,255);
+    c.rect(0,0,560,60,IM_COL32(12,12,14,static_cast<int>(std::max(c.opacity,0.97f)*255)));
+    c.line(5,0,555,0,edge);
+    c.line(5,20,555,20,alpha(edge,85));
+    c.line(5,40,555,40,alpha(edge,85));
 
-    // The current lap clock is already in the header. Only add lap count,
-    // personal best, sectors and last lap here.
-    c.text(10,298,17,white,t.hasLap ? "LAP "+std::to_string(t.lap)+
-        (t.hasSession ? " / "+std::to_string(t.totalLaps) : " / --") : "LAP -- / --",c.f.bold);
-    c.right(358,300,14,white,"BEST  "+lapTime(t.bestLap),c.f.bold);
+    const bool ahead=t.hasLap && t.position>1 && t.gapAhead>0;
+    const bool behind=t.hasLap && t.gapBehind>0;
+    const bool invalid=t.hasLap && t.invalidLap;
+    const bool penalized=t.hasLap && t.penalties>0;
+    const std::string lap=t.hasLap ? "L"+std::to_string(t.lap)+"/"+
+        (t.hasSession ? std::to_string(t.totalLaps) : "--")+(invalid || penalized ? " !" : "") : "L--/--";
+    c.fit(6,3,62,13,invalid ? red : penalized ? orange : white,lap,c.f.bold);
+    c.text(78,5,11,label,"AHEAD",c.f.bold);
+    c.right(190,2,14,cyan,ahead ? number(t.gapAhead,3,true) : "---",c.f.bold);
+    c.text(204,5,11,label,"BEHIND",c.f.bold);
+    c.right(326,2,14,orange,behind ? number(-t.gapBehind,3,true) : "---",c.f.bold);
+
+    const auto energyColor=t.hasStatus ? t.ersPercent<20 ? orange : green : label;
+    c.text(340,5,11,label,"ERS",c.f.bold);
+    c.right(406,2,14,energyColor,t.hasStatus ? number(t.ersPercent,0)+"%" : "--%",c.f.bold);
+    for (int i=0;i<12;++i)
+        c.rect(415+i*4.0f,8,2.6f,5,t.hasStatus && t.ersPercent>=(i+1)*100.0f/12 ? energyColor : alpha(energyColor,35));
+    c.right(553,4,11,t.hasStatus && t.ersMode==3 ? orange : white,ersMode(t),c.f.bold);
+
+    // One row of sector times and all four tire temperatures remains visible.
+    // Active sectors use green; completed sectors use cyan.
     for (int i=0;i<3;++i) {
-        const float x=10+i*119.0f;
+        const float x=6+i*94.0f;
         const bool active=t.hasLap && t.sector==i, done=t.hasLap && t.sector>i;
         float value=done ? t.sectors[i] : 0;
         if (active) {
             value=t.lapSeconds;
             for (int j=0;j<i;++j) value-=t.sectors[j];
         }
-        c.text(x,326,11,active ? green : muted,"S"+std::to_string(i+1)+(active ? "  LIVE" : ""),c.f.bold);
-        c.text(x,341,20,white,value>0 ? number(value,3) : "--.---",c.f.bold);
+        c.text(x,25,11,active ? green : label,"S"+std::to_string(i+1),c.f.bold);
+        c.text(x+22,22,14,active ? green : done ? cyan : white,value>0 ? number(value,3) : "--.---",c.f.bold);
     }
-    c.text(10,378,12,muted,"LAST  "+lapTime(t.lastLap),c.f.bold);
-    if (t.hasLap && t.invalidLap) c.right(358,378,12,red,"INVALID LAP",c.f.bold);
-    else if (t.hasLap && t.penalties>0) c.right(358,378,12,orange,"PEN +"+std::to_string(t.penalties)+"s",c.f.bold);
+    constexpr const char* names[]{"FL","FR","RL","RR"};
+    for (int i=0;i<4;++i) {
+        const float x=296+i*64.0f;
+        c.text(x,25,11,label,names[i],c.f.bold);
+        c.text(x+20,22,14,t.hasTelemetry ? tyreColor(t.tyreTemp[i]) : label,
+            t.hasTelemetry ? number(t.tyreTemp[i],0)+"°" : "--",c.f.bold);
+    }
 
-    const bool ahead=t.hasLap && t.position>1 && t.gapAhead>0;
-    const bool behind=t.hasLap && t.gapBehind>0;
-    c.text(388,299,11,muted,"AHEAD",c.f.bold);
-    c.fit(388,316,92,13,white,ahead && !t.aheadName.empty() ? t.aheadName : "---",c.f.bold);
-    c.right(580,300,23,cyan,ahead ? number(t.gapAhead,3,true) : "---",c.f.bold);
-    c.text(388,354,11,muted,"BEHIND",c.f.bold);
-    c.fit(388,371,92,13,white,behind && !t.behindName.empty() ? t.behindName : "---",c.f.bold);
-    c.right(580,355,23,orange,behind ? number(-t.gapBehind,3,true) : "---",c.f.bold);
-
-    c.text(612,299,15,white,"ERS",c.f.bold);
-    const auto energyColor=t.hasStatus ? t.ersPercent<20 ? orange : green : muted;
-    c.right(816,295,24,energyColor,t.hasStatus ? number(t.ersPercent,0)+"%" : "--%",c.f.bold);
-    for (int i=0;i<24;++i)
-        c.rect(612+i*8.5f,324,6.5f,5,t.hasStatus && t.ersPercent>=(i+1)*100.0f/24 ? energyColor : alpha(energyColor,24));
-    c.text(612,339,13,t.hasStatus && t.ersMode==3 ? orange : white,ersMode(t),c.f.bold);
-    c.right(816,340,11,muted,t.hasStatus ? number(t.deployedMJ,2)+" MJ/LAP" : "-- MJ/LAP",c.f.bold);
-
-    // Active aero and electrical overtake remain distinct. Missing packets
-    // produce a neutral dash rather than an inferred activation state.
+    c.text(6,45,11,label,"BEST",c.f.bold);
+    c.text(41,43,13,white,lapTime(t.bestLap),c.f.bold);
+    c.text(126,45,11,label,"LAST",c.f.bold);
+    c.text(161,43,13,white,lapTime(t.lastLap),c.f.bold);
     const bool known=t.hasTelemetry && (t.regs2026 ? t.aeroKnown : t.hasStatus);
     const bool active=known && (t.regs2026 ? t.straightMode : t.drs==Drs::Open);
     const bool available=known && (t.regs2026 ? t.aeroAvailable : t.drs==Drs::Available);
     const std::string aero=!known ? "AERO --" : t.regs2026 ?
         (active ? "STRAIGHT MODE" : available ? "AERO READY" : "CORNER MODE") :
         (active ? "DRS OPEN" : available ? "DRS AVAILABLE" : "DRS CLOSED");
-    c.text(612,377,12,active ? green : available ? cyan : muted,aero,c.f.bold);
-    if (t.regs2026 && known && (t.overtake || t.overtakeAvailable))
-        c.right(816,378,10,t.overtake ? orange : cyan,t.overtake ? "OT ACTIVE" : "OT READY",c.f.bold);
+    c.text(296,44,12,active ? green : available ? cyan : label,aero,c.f.bold);
+    // The rightmost status is always textual; never rely on a color alone.
+    std::string state;
+    ImU32 stateColor=label;
+    if (invalid) { state="INVALID LAP"; stateColor=red; }
+    else if (penalized) { state="PEN +"+std::to_string(t.penalties)+"s"; stateColor=orange; }
+    else if (t.regs2026) {
+        state=!known ? "OT --" : t.overtake ? "OT ACTIVE" : t.overtakeAvailable ? "OT READY" : "OT STANDBY";
+        stateColor=known && t.overtake ? orange : known && t.overtakeAvailable ? cyan : label;
+    } else state=t.hasStatus ? number(t.deployedMJ,2)+" MJ/LAP" : "-- MJ/LAP";
+    c.right(553,44,12,stateColor,state,c.f.bold);
 
-    c.text(848,299,14,white,"TIRES °C",c.f.bold);
-    c.right(1110,301,11,muted,t.hasStatus ? compoundName(t.compound) : "---",c.f.bold);
-    constexpr const char* names[]{"FL","FR","RL","RR"};
-    for (int i=0;i<4;++i) {
-        const float x=848+(i%2)*134.0f, y=332+(i/2)*37.0f;
-        c.text(x,y+5,12,muted,names[i],c.f.bold);
-        c.text(x+30,y,23,t.hasTelemetry ? tyreColor(t.tyreTemp[i]) : muted,
-            t.hasTelemetry ? number(t.tyreTemp[i],0) : "--",c.f.bold);
-    }
-    // Secondary tire diagnostics are still available without consuming space.
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(c.p(840,294),c.p(1120,400))) {
+    // Secondary values remain accessible without making the overlay larger.
+    // Tooltip text uses ImGui's normal font size, independent of overlay scale.
+    auto hovered=[&](float x,float y,float w,float h) {
+        return ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(c.p(x,y),c.p(x+w,y+h));
+    };
+    if (hovered(0,0,70,20) || hovered(0,20,285,40)) {
         ImGui::BeginTooltip();
-        ImGui::TextUnformatted("Tire core / pressure / wear");
-        ImGui::Separator();
+        ImGui::TextUnformatted("Lap timing / sector times in seconds");
+        const std::string info=t.hasLap ? "Lap "+std::to_string(t.lap)+" / penalties "+std::to_string(t.penalties)+
+            "s / warnings "+std::to_string(t.warnings)+(invalid ? " / INVALID" : "") : "Waiting for lap data";
+        ImGui::TextUnformatted(info.c_str());
+        ImGui::TextUnformatted("Green: current sector. Cyan: completed sector.");
+        ImGui::EndTooltip();
+    } else if (hovered(70,0,265,20)) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(("Ahead: "+(ahead ? t.aheadName+"  "+number(t.gapAhead,3,true)+" s" : "---")).c_str());
+        ImGui::TextUnformatted(("Behind: "+(behind ? t.behindName+"  "+number(-t.gapBehind,3,true)+" s" : "---")).c_str());
+        ImGui::EndTooltip();
+    } else if (hovered(335,0,225,20)) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(("ERS deployment: "+ersMode(t)).c_str());
+        ImGui::TextUnformatted((t.hasStatus ? number(t.deployedMJ,2)+" MJ deployed this lap" : "Waiting for ERS data").c_str());
+        ImGui::EndTooltip();
+    } else if (hovered(290,20,270,20)) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted((std::string("Tire core / Celsius / ")+(t.hasStatus ? compoundName(t.compound) : "---")).c_str());
         for (int i=0;i<4;++i) {
             const std::string row=std::string(names[i])+"   "+(t.hasTelemetry ? number(t.tyreTemp[i],0)+" °C   "+
                 number(t.tyrePressure[i],1)+" PSI" : "-- °C   -- PSI")+"   "+
